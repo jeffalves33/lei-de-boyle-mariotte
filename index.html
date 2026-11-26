@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lei de Boyle-Mariotte — Simulação Interativa</title>
+<style>
+  :root{
+    --bg:#eef3f8; --card:#ffffff; --ink:#1d2b3a; --muted:#5b6b7c;
+    --accent:#2f6fd6; --accent2:#e2553a; --line:#d9e2ec; --soft:#f5f8fb;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+  header{max-width:1280px;margin:0 auto;padding:20px 24px 6px}
+  header h1{margin:0;font-size:1.65rem;letter-spacing:-.01em}
+  header p{margin:4px 0 0;color:var(--muted)}
+  .formula-top{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:999px;background:#e3ecfa;color:#1f4fa3;font-weight:600}
+  .wrap{max-width:1280px;margin:0 auto;padding:12px 24px 36px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+  .card{background:var(--card);border-radius:14px;box-shadow:0 1px 3px rgba(20,40,70,.08),0 6px 18px rgba(20,40,70,.05);padding:16px 18px}
+  .card h2{margin:0 0 10px;font-size:1.05rem}
+  .full{grid-column:1/-1}
+  canvas{width:100%;display:block;touch-action:none;border-radius:10px}
+  #app{aspect-ratio:560/580;background:linear-gradient(#fbfdff,#eef4fa)}
+  #graph{aspect-ratio:560/400;background:#fff}
+  .hint{font-size:.85rem;color:var(--muted);margin:8px 2px 0}
+  .readouts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
+  .ro{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .ro .k{font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .ro .v{font-size:1.25rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ro .v small{font-size:.75rem;font-weight:600;color:var(--muted)}
+  .ro.pv{background:#fff6e8;border-color:#f3d6a6}
+  .controls{display:grid;gap:12px}
+  .ctl label{display:flex;justify-content:space-between;font-weight:600;font-size:.92rem;margin-bottom:4px}
+  .ctl label span{font-variant-numeric:tabular-nums;color:var(--accent)}
+  input[type=range]{width:100%;accent-color:var(--accent);height:22px}
+  #tSlider{accent-color:#e07a2c}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  button{font:inherit;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:9px;cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{filter:brightness(1.08);color:#fff}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{border:0;border-radius:0;padding:7px 12px}
+  .seg button.on{background:var(--accent);color:#fff}
+  .chk{display:inline-flex;align-items:center;gap:6px;font-size:.9rem;cursor:pointer;user-select:none}
+  .chk input{accent-color:var(--accent);width:16px;height:16px}
+  .graph-bar{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:8px}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.92rem}
+  th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line)}
+  th{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;background:var(--soft)}
+  th:first-child,td:first-child{text-align:center}
+  td .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .tbl-wrap{max-height:250px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .empty{color:var(--muted);text-align:center;padding:18px;font-size:.9rem}
+  .note{font-size:.88rem;color:var(--muted);margin-top:8px}
+  .theory{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+  .theory h3{margin:0 0 6px;font-size:.98rem}
+  .theory p{margin:0 0 8px;font-size:.93rem}
+  .eq{font-family:"Cambria Math","Times New Roman",serif;font-size:1.15rem;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:8px 12px;text-align:center;margin:6px 0 10px}
+  .quiz{display:grid;gap:10px}
+  .quiz .q{font-size:.97rem}
+  .quiz input[type=number]{font:inherit;width:130px;padding:7px 10px;border:1px solid var(--line);border-radius:8px}
+  .fb{font-weight:600;min-height:1.4em}
+  .fb.ok{color:#178a46}.fb.bad{color:#c63b2b}
+  @media (max-width:980px){
+    .wrap{grid-template-columns:1fr}
+    .theory{grid-template-columns:1fr}
+    .readouts{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @media (max-width:520px){
+    .wrap{padding:10px}
+    header{padding:16px 12px 4px}
+    .readouts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lei de Boyle-Mariotte</h1>
+  <p>Transformação isotérmica: com temperatura e quantidade de gás constantes, a pressão de um gás é inversamente proporcional ao seu volume.</p>
+  <span class="formula-top">P · V = constante &nbsp;⟺&nbsp; P₁V₁ = P₂V₂</span>
+</header>
+
+<main class="wrap">
+
+  <!-- APARATO -->
+  <section class="card">
+    <h2>Experimento: cilindro com êmbolo em banho térmico</h2>
+    <canvas id="app" aria-label="Cilindro com gás, êmbolo, manômetro e termômetro"></canvas>
+    <p class="hint">Arraste o <b>êmbolo</b> (ou a alça) para cima e para baixo, ou use o controle de volume. As bolinhas são as moléculas do gás; os brilhos amarelos são colisões contra o êmbolo.</p>
+  </section>
+
+  <!-- GRÁFICO E CONTROLES -->
+  <section class="card">
+    <div class="readouts">
+      <div class="ro"><div class="k">Pressão</div><div class="v" id="roP">–</div></div>
+      <div class="ro"><div class="k">Volume</div><div class="v" id="roV">–</div></div>
+      <div class="ro"><div class="k">Temp.</div><div class="v" id="roT">–</div></div>
+      <div class="ro pv"><div class="k">P · V</div><div class="v" id="roPV">–</div></div>
+      <div class="ro"><div class="k" title="Colisões por segundo das moléculas contra o êmbolo">Choques/s</div><div class="v" id="roHits">–</div></div>
+    </div>
+
+    <div class="graph-bar">
+      <div class="seg" role="group" aria-label="Tipo de gráfico">
+        <button id="gPV" class="on">P × V</button>
+        <button id="gInv">P × 1/V</button>
+      </div>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="cIso" checked> outras isotermas</label>
+        <label class="chk"><input type="checkbox" id="cArea" checked> área P·V</label>
+      </div>
+    </div>
+    <canvas id="graph" aria-label="Gráfico de pressão em função do volume"></canvas>
+    <p class="hint">Dica: clique ou arraste sobre o gráfico para mudar o volume diretamente.</p>
+
+    <div class="controls" style="margin-top:12px">
+      <div class="ctl">
+        <label for="vSlider">Volume do gás <span id="vLbl">5,0 L</span></label>
+        <input type="range" id="vSlider" min="1" max="10" step="0.1" value="5">
+      </div>
+      <div class="ctl">
+        <label for="tSlider">Temperatura do banho (escolhe a isoterma) <span id="tLbl" style="color:#e07a2c">300 K</span></label>
+        <input type="range" id="tSlider" min="200" max="500" step="10" value="300">
+      </div>
+      <div class="row">
+        <button class="primary" id="bRec">📍 Registrar medida</button>
+        <button id="bClear">🗑 Limpar medidas</button>
+        <button id="bPause">⏸ Pausar moléculas</button>
+        <button id="bAuto">▶ Compressão automática</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABELA -->
+  <section class="card">
+    <h2>Tabela de medidas</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>V (L)</th><th>P (atm)</th><th>T (K)</th><th>P·V (atm·L)</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="emptyMsg">Nenhuma medida ainda. Mude o volume e clique em <b>Registrar medida</b>.</div>
+    </div>
+    <p class="note" id="tblNote">Observe a última coluna: na mesma temperatura, o produto P·V não muda.</p>
+  </section>
+
+  <!-- DESAFIO -->
+  <section class="card">
+    <h2>Desafio rápido</h2>
+    <div class="quiz">
+      <div class="q" id="qText"></div>
+      <div class="row">
+        <input type="number" id="qAns" step="0.01" placeholder="sua resposta">
+        <button class="primary" id="qCheck">Verificar</button>
+        <button id="qNew">Nova questão</button>
+        <button id="qSim">Testar na simulação</button>
+      </div>
+      <div class="fb" id="qFb"></div>
+    </div>
+  </section>
+
+  <!-- TEORIA -->
+  <section class="card full">
+    <h2>Entendendo a lei</h2>
+    <div class="theory">
+      <div>
+        <h3>📐 O enunciado</h3>
+        <p>Para uma massa fixa de gás ideal a <b>temperatura constante</b>, a pressão é inversamente proporcional ao volume:</p>
+        <div class="eq">P = k / V &nbsp;&nbsp;⇒&nbsp;&nbsp; P₁·V₁ = P₂·V₂</div>
+        <p>Se o volume cai pela metade, a pressão dobra. Se o volume triplica, a pressão cai para um terço. O gráfico P × V é uma <b>hipérbole</b> (chamada <i>isoterma</i>), e o gráfico P × 1/V é uma <b>reta</b> que passa pela origem.</p>
+      </div>
+      <div>
+        <h3>⚛️ A explicação microscópica</h3>
+        <p>A pressão nasce dos choques das moléculas contra as paredes. Como a temperatura não muda, a <b>velocidade média</b> das moléculas também não muda.</p>
+        <p>Ao reduzir o volume, as moléculas percorrem distâncias menores entre um choque e outro, então atingem o êmbolo <b>com mais frequência</b>. Mais choques por segundo significam mais força por área, ou seja, mais pressão. Compare o contador “choques/s no êmbolo” com a pressão.</p>
+      </div>
+      <div>
+        <h3>🌡️ Por que o banho térmico?</h3>
+        <p>Comprimir um gás rapidamente o aquece. Para que a transformação seja <b>isotérmica</b>, ela precisa ser lenta e o cilindro precisa trocar calor com um reservatório (o banho) mantido a temperatura constante.</p>
+        <p>A constante <i>k</i> depende da temperatura e da quantidade de gás (<i>k = nRT</i>). Isotermas de temperatura maior ficam mais afastadas da origem.</p>
+        <p style="color:var(--muted);font-size:.85rem">Robert Boyle (1662) e Edme Mariotte (1676) chegaram à lei de forma independente. Nesta simulação: n = 0,2 mol, R = 0,082 atm·L/(mol·K).</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+"use strict";
+
+/* ================== FÍSICA ================== */
+const R = 0.082057, N_MOL = 0.2;
+const VMIN = 1, VMAX = 10, TMIN = 200, TMAX = 500;
+const pressure = (V, T) => N_MOL * R * T / V;
+const fmt = (x, d = 2) => x.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+const state = {
+  V: 5, Vtarget: 5, T: 300, Tdisp: 300, Pneedle: pressure(5, 300),
+  running: true, showIso: true, showArea: true, mode: 'PV',
+  points: [], dragging: false, dragOffset: 0, time: 0,
+  hitRate: 0, hitAcc: 0, hitClock: 0, auto: null
+};
+
+/* ================== CORES ================== */
+function lerpColor(stops, t) {
+  t = clamp(t, 0, 1);
+  const s = t * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(s)), f = s - i;
+  return stops[i].map((v, k) => Math.round(v + (stops[i + 1][k] - v) * f));
+}
+const TSTOPS = [[40, 110, 230], [40, 165, 190], [235, 150, 40], [215, 45, 40]];
+const tempRGB = T => lerpColor(TSTOPS, (T - TMIN) / (TMAX - TMIN));
+const rgba = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const mix = (c, w, f) => c.map((v, k) => Math.round(v + (w[k] - v) * f));
+const SPEEDSTOPS = [[60, 130, 240], [80, 190, 150], [250, 190, 50], [235, 70, 50]];
+
+/* ================== CANVAS ================== */
+function setupCanvas(cv, W, H) {
+  const ctx = cv.getContext('2d');
+  const resize = () => {
+    const r = cv.getBoundingClientRect();
+    if (!r.width) return;
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(r.width * dpr);
+    cv.height = Math.round(r.width * H / W * dpr);
+    ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+  };
+  resize();
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv);
+  else window.addEventListener('resize', resize);
+  return ctx;
+}
+function toLocal(cv, W, H, e) {
+  const r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
+}
+function rrect(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* ================== APARATO ================== */
+const A = {
+  W: 560, H: 580,
+  cylL: 170, cylR: 350, wall: 6, cylTop: 148, inBottom: 504, pxPerL: 33, pistonH: 18, cx: 260,
+  bathL: 40, bathR: 400, bathTop: 192, bathBot: 545, water: 214,
+  gx: 480, gy: 150, gr: 58, tubeY: 488,
+  tx: 97
+};
+const innerL = A.cylL + A.wall, innerR = A.cylR - A.wall;
+const pistonY = V => A.inBottom - V * A.pxPerL;        // face inferior do êmbolo
+const handleYof = V => pistonY(V) - A.pistonH - 70;
+
+const appCv = document.getElementById('app');
+const actx = setupCanvas(appCv, A.W, A.H);
+
+/* --- moléculas --- */
+const NP = 70, PR = 4.2;
+let parts = [], flashes = [], bubbles = [];
+function initParticles() {
+  parts = [];
+  const yTop = pistonY(state.V);
+  for (let i = 0; i < NP; i++) {
+    // distribuição de velocidades 2D (Rayleigh) com média 1
+    const s = clamp(Math.sqrt(-2 * Math.log(1 - Math.random())) / 1.2533, 0.25, 2.6);
+    const a = Math.random() * Math.PI * 2;
+    parts.push({
+      x: innerL + PR + Math.random() * (innerR - innerL - 2 * PR),
+      y: yTop + PR + Math.random() * (A.inBottom - yTop - 2 * PR),
+      dx: Math.cos(a), dy: Math.sin(a), s
+    });
+  }
+}
+function initBubbles() {
+  bubbles = [];
+  for (let i = 0; i < 16; i++) bubbles.push(newBubble(true));
+}
+function newBubble(anyY) {
+  const left = Math.random() < 0.6;
+  const x = left ? 50 + Math.random() * 30 + (Math.random() < .5 ? 0 : 48) : 358 + Math.random() * 34;
+  return { x, y: anyY ? A.water + Math.random() * (A.bathBot - A.water) : A.bathBot - 6, r: 1.5 + Math.random() * 2.5, v: 14 + Math.random() * 22, ph: Math.random() * 6 };
+}
+
+function updateParticles(dt) {
+  const vT = 165 * Math.sqrt(state.Tdisp / 300);
+  const yTop = pistonY(state.V) + PR, yBot = A.inBottom - PR, xL = innerL + PR, xR = innerR - PR;
+  let hits = 0;
+  for (const p of parts) {
+    const v = p.s * vT;
+    p.x += p.dx * v * dt; p.y += p.dy * v * dt;
+    if (p.x < xL) { p.x = 2 * xL - p.x; p.dx = Math.abs(p.dx); }
+    if (p.x > xR) { p.x = 2 * xR - p.x; p.dx = -Math.abs(p.dx); }
+    if (p.y > yBot) { p.y = 2 * yBot - p.y; p.dy = -Math.abs(p.dy); }
+    if (p.y < yTop) {
+      if (p.dy < 0) { hits++; if (flashes.length < 60) flashes.push({ x: p.x, y: yTop - PR, t: 0 }); }
+      p.y = yTop + (yTop - p.y);
+      p.dy = Math.abs(p.dy);
+    }
+    p.x = clamp(p.x, xL, xR); p.y = clamp(p.y, yTop, Math.max(yTop, yBot));
+  }
+  state.hitAcc += hits;
+  state.hitClock += dt;
+  if (state.hitClock >= 0.5) {
+    const inst = state.hitAcc / state.hitClock;
+    state.hitRate = state.hitRate ? state.hitRate * 0.55 + inst * 0.45 : inst;
+    state.hitAcc = 0; state.hitClock = 0;
+  }
+}
+
+function drawApparatus() {
+  const c = actx, t = state.time;
+  c.clearRect(0, 0, A.W, A.H);
+  const P = pressure(state.V, state.T);
+  const yb = pistonY(state.V), yt = yb - A.pistonH, hy = handleYof(state.V);
+  const tc = tempRGB(state.Tdisp);
+
+  /* --- Bancada --- */
+  c.fillStyle = '#c9d3de';
+  c.fillRect(20, A.bathBot, 400, 6);
+
+  /* --- Banho térmico (água) --- */
+  const waterTop = mix(tc, [255, 255, 255], 0.62), waterBot = mix(tc, [255, 255, 255], 0.38);
+  const wg = c.createLinearGradient(0, A.water, 0, A.bathBot);
+  wg.addColorStop(0, rgba(waterTop, .9)); wg.addColorStop(1, rgba(waterBot, .95));
+  c.fillStyle = wg;
+  c.beginPath();
+  c.moveTo(A.bathL + 4, A.bathBot - 4);
+  for (let x = A.bathL + 4; x <= A.bathR - 4; x += 4) c.lineTo(x, A.water + Math.sin(x * 0.06 + t * 2.2) * 2.2);
+  c.lineTo(A.bathR - 4, A.bathBot - 4);
+  c.closePath(); c.fill();
+
+  // bolhas
+  c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 1.2;
+  for (const b of bubbles) {
+    c.beginPath(); c.arc(b.x + Math.sin(t * 3 + b.ph) * 2, b.y, b.r, 0, Math.PI * 2); c.stroke();
+  }
+
+  // recipiente do banho (vidro)
+  c.strokeStyle = '#7f9bb6'; c.lineWidth = 4; c.lineJoin = 'round';
+  c.beginPath();
+  c.moveTo(A.bathL, A.bathTop); c.lineTo(A.bathL, A.bathBot); c.lineTo(A.bathR, A.bathBot); c.lineTo(A.bathR, A.bathTop);
+  c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(A.bathL + 7, A.bathTop + 30); c.lineTo(A.bathL + 7, A.bathBot - 20); c.stroke();
+
+  /* --- Tubo até o manômetro --- */
+  c.lineCap = 'round';
+  c.strokeStyle = '#6f7f8f'; c.lineWidth = 10;
+  c.beginPath(); c.moveTo(A.cylR - 2, A.tubeY); c.lineTo(A.gx, A.tubeY); c.lineTo(A.gx, A.gy + A.gr); c.stroke();
+  c.strokeStyle = '#b7c3cf'; c.lineWidth = 5;
+  c.beginPath(); c.moveTo(A.cylR - 2, A.tubeY); c.lineTo(A.gx, A.tubeY); c.lineTo(A.gx, A.gy + A.gr); c.stroke();
+  c.lineCap = 'butt';
+
+  /* --- Cilindro: interior --- */
+  c.fillStyle = '#f6f9fc';
+  c.fillRect(innerL, A.cylTop, innerR - innerL, A.inBottom - A.cylTop);
+  const gg = c.createLinearGradient(0, yb, 0, A.inBottom);
+  gg.addColorStop(0, rgba(tc, .10)); gg.addColorStop(1, rgba(tc, .20));
+  c.fillStyle = gg;
+  c.fillRect(innerL, yb, innerR - innerL, A.inBottom - yb);
+
+  /* --- Moléculas --- */
+  for (const p of parts) {
+    const col = lerpColor(SPEEDSTOPS, (p.s - 0.3) / 1.9);
+    c.fillStyle = rgba(col);
+    c.beginPath(); c.arc(p.x, p.y, PR, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.6)';
+    c.beginPath(); c.arc(p.x - 1.3, p.y - 1.3, 1.4, 0, Math.PI * 2); c.fill();
+  }
+  // brilhos de colisão no êmbolo
+  for (const f of flashes) {
+    const a = 1 - f.t / 0.35;
+    c.strokeStyle = `rgba(255,190,20,${a})`; c.lineWidth = 2;
+    c.beginPath(); c.arc(f.x, f.y + 2, 3 + f.t * 30, Math.PI * 0.05, Math.PI * 0.95); c.stroke();
+  }
+
+  /* --- Êmbolo --- */
+  const pg = c.createLinearGradient(0, yt, 0, yb);
+  pg.addColorStop(0, '#9aa7b4'); pg.addColorStop(.5, '#d7dee5'); pg.addColorStop(1, '#7d8a97');
+  c.fillStyle = pg;
+  c.fillRect(innerL, yt, innerR - innerL, A.pistonH);
+  c.fillStyle = '#3b4652';
+  c.fillRect(innerL, yt + 3, innerR - innerL, 2.5);
+  c.fillRect(innerL, yb - 5.5, innerR - innerL, 2.5);
+  // haste
+  const rg = c.createLinearGradient(A.cx - 5, 0, A.cx + 5, 0);
+  rg.addColorStop(0, '#7d8a97'); rg.addColorStop(.5, '#e5eaef'); rg.addColorStop(1, '#7d8a97');
+  c.fillStyle = rg;
+  c.fillRect(A.cx - 5, hy, 10, yt - hy);
+  // alça
+  const hg = c.createLinearGradient(0, hy - 14, 0, hy);
+  hg.addColorStop(0, state.dragging ? '#3d7be0' : '#4a5866'); hg.addColorStop(1, state.dragging ? '#2559b0' : '#2b3540');
+  c.fillStyle = hg;
+  rrect(c, A.cx - 46, hy - 14, 92, 15, 6); c.fill();
+
+  // seta da força externa
+  const len = clamp(16 + P * 9, 16, 90);
+  const yEnd = hy - 18, yStart = Math.max(6, yEnd - len);
+  c.strokeStyle = '#e2553a'; c.fillStyle = '#e2553a'; c.lineWidth = 5;
+  c.beginPath(); c.moveTo(A.cx, yStart); c.lineTo(A.cx, yEnd - 8); c.stroke();
+  c.beginPath(); c.moveTo(A.cx - 9, yEnd - 10); c.lineTo(A.cx + 9, yEnd - 10); c.lineTo(A.cx, yEnd + 2); c.closePath(); c.fill();
+  c.font = 'bold 14px system-ui,sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
+  c.fillText('F', A.cx + 12, (yStart + yEnd) / 2);
+
+  /* --- Paredes de vidro do cilindro --- */
+  c.fillStyle = 'rgba(150,190,225,.55)';
+  c.fillRect(A.cylL, A.cylTop, A.wall, A.inBottom - A.cylTop + A.wall);
+  c.fillRect(innerR, A.cylTop, A.wall, A.inBottom - A.cylTop + A.wall);
+  c.fillRect(A.cylL, A.inBottom, A.cylR - A.cylL, A.wall);
+  c.strokeStyle = '#5f84a8'; c.lineWidth = 1.5;
+  c.strokeRect(A.cylL, A.cylTop, A.cylR - A.cylL, A.inBottom - A.cylTop + A.wall);
+  c.strokeRect(innerL, A.cylTop - 1, innerR - innerL, A.inBottom - A.cylTop + 1);
+  // borda superior
+  c.fillStyle = '#5f84a8';
+  c.fillRect(A.cylL - 5, A.cylTop - 4, 11, 5); c.fillRect(A.cylR - 6, A.cylTop - 4, 11, 5);
+  // reflexo
+  c.fillStyle = 'rgba(255,255,255,.55)';
+  c.fillRect(innerL + 6, A.cylTop + 10, 3, A.inBottom - A.cylTop - 20);
+
+  /* --- Régua de volume --- */
+  c.strokeStyle = '#33475b'; c.fillStyle = '#33475b'; c.lineWidth = 1;
+  c.font = '10px system-ui,sans-serif'; c.textAlign = 'right'; c.textBaseline = 'middle';
+  for (let k = 0; k <= 20; k++) {
+    const y = A.inBottom - k * A.pxPerL / 2, major = k % 2 === 0;
+    c.beginPath(); c.moveTo(A.cylL - (major ? 8 : 4), y); c.lineTo(A.cylL, y); c.stroke();
+    if (major) c.fillText(String(k / 2), A.cylL - 10, y);
+  }
+  c.font = 'bold 10px system-ui,sans-serif';
+  c.fillText('V (L)', A.cylL - 4, A.cylTop - 4);
+  // marcador do nível atual
+  c.fillStyle = '#2f6fd6';
+  c.beginPath(); c.moveTo(A.cylL - 1, yb); c.lineTo(A.cylL - 9, yb - 5); c.lineTo(A.cylL - 9, yb + 5); c.closePath(); c.fill();
+
+  /* --- Termômetro --- */
+  drawThermometer(c);
+  /* --- Manômetro --- */
+  drawGauge(c, state.Pneedle);
+
+  /* --- Rótulos --- */
+  c.fillStyle = '#33475b'; c.font = '600 12px system-ui,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  c.fillText('Banho térmico: mantém a temperatura constante', 220, A.H - 10);
+  c.font = '11px system-ui,sans-serif'; c.fillStyle = '#5b6b7c';
+  c.fillText('gás (n = 0,2 mol)', A.cx, A.inBottom - 8 > yb + 14 ? A.inBottom - 8 : -50);
+}
+
+function drawThermometer(c) {
+  const x = A.tx, top = 104, bulbY = 505;
+  const yOf = T => 470 - (T - TMIN) / (TMAX - TMIN) * 335;
+  // corpo
+  c.fillStyle = 'rgba(255,255,255,.92)'; c.strokeStyle = '#7f9bb6'; c.lineWidth = 1.5;
+  rrect(c, x - 7, top, 14, bulbY - top, 7); c.fill(); c.stroke();
+  c.beginPath(); c.arc(x, bulbY, 13, 0, Math.PI * 2); c.fill(); c.stroke();
+  // líquido
+  c.fillStyle = '#d93a2b';
+  c.beginPath(); c.arc(x, bulbY, 9.5, 0, Math.PI * 2); c.fill();
+  const ly = yOf(state.Tdisp);
+  c.fillRect(x - 3, ly, 6, bulbY - ly);
+  c.fillStyle = 'rgba(255,255,255,.5)';
+  c.fillRect(x - 2.5, top + 6, 1.5, bulbY - top - 14);
+  // escala
+  c.strokeStyle = '#33475b'; c.fillStyle = '#33475b'; c.lineWidth = 1;
+  c.font = '10px system-ui,sans-serif'; c.textAlign = 'right'; c.textBaseline = 'middle';
+  for (let T = TMIN; T <= TMAX; T += 50) {
+    const y = yOf(T);
+    c.beginPath(); c.moveTo(x - 7, y); c.lineTo(x - 12, y); c.stroke();
+    c.fillText(T + ' K', x - 14, y);
+  }
+  // rótulo
+  c.textAlign = 'center'; c.font = '600 12px system-ui,sans-serif';
+  c.fillText('Termômetro', x, 76);
+  c.font = 'bold 13px system-ui,sans-serif'; c.fillStyle = '#d93a2b';
+  c.fillText(Math.round(state.Tdisp) + ' K', x, 93);
+}
+
+function drawGauge(c, Pn) {
+  const { gx, gy, gr } = A, PMAXG = 9;
+  const a0 = Math.PI * 0.75, a1 = Math.PI * 2.25;
+  const ang = v => a0 + (v / PMAXG) * (a1 - a0);
+  // aro
+  const ring = c.createLinearGradient(gx - gr, gy - gr, gx + gr, gy + gr);
+  ring.addColorStop(0, '#e6ebf0'); ring.addColorStop(.5, '#8796a5'); ring.addColorStop(1, '#4b5865');
+  c.fillStyle = ring; c.beginPath(); c.arc(gx, gy, gr + 7, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#fdfdfb'; c.beginPath(); c.arc(gx, gy, gr, 0, Math.PI * 2); c.fill();
+  // zona vermelha
+  c.strokeStyle = 'rgba(226,85,58,.85)'; c.lineWidth = 6;
+  c.beginPath(); c.arc(gx, gy, gr - 6, ang(7), ang(9)); c.stroke();
+  c.strokeStyle = 'rgba(47,111,214,.35)';
+  c.beginPath(); c.arc(gx, gy, gr - 6, ang(0), ang(7)); c.stroke();
+  // marcas
+  c.strokeStyle = '#2b3540'; c.fillStyle = '#2b3540';
+  c.font = 'bold 10px system-ui,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  for (let v = 0; v <= PMAXG + 1e-6; v += 0.5) {
+    const a = ang(v), major = Math.abs(v - Math.round(v)) < 1e-6;
+    const r1 = gr - 3, r2 = gr - (major ? 13 : 8);
+    c.lineWidth = major ? 2 : 1;
+    c.beginPath(); c.moveTo(gx + Math.cos(a) * r1, gy + Math.sin(a) * r1); c.lineTo(gx + Math.cos(a) * r2, gy + Math.sin(a) * r2); c.stroke();
+    if (major) c.fillText(String(v), gx + Math.cos(a) * (gr - 22), gy + Math.sin(a) * (gr - 22));
+  }
+  c.font = '10px system-ui,sans-serif'; c.fillStyle = '#5b6b7c';
+  c.fillText('atm', gx, gy - 17);
+  // visor digital
+  c.fillStyle = '#1f2a36'; rrect(c, gx - 31, gy + 25, 62, 19, 4); c.fill();
+  c.fillStyle = '#7dffb0'; c.font = 'bold 12px ui-monospace,Consolas,monospace';
+  c.fillText(fmt(pressure(state.V, state.T), 2), gx, gy + 35);
+  // ponteiro
+  const a = ang(clamp(Pn, -0.2, PMAXG + 0.3));
+  c.strokeStyle = '#d93a2b'; c.lineWidth = 2.5; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(gx - Math.cos(a) * 8, gy - Math.sin(a) * 8); c.lineTo(gx + Math.cos(a) * (gr - 10), gy + Math.sin(a) * (gr - 10)); c.stroke();
+  c.lineCap = 'butt';
+  c.fillStyle = '#2b3540'; c.beginPath(); c.arc(gx, gy, 5, 0, Math.PI * 2); c.fill();
+  // rótulo
+  c.fillStyle = '#33475b'; c.font = '600 12px system-ui,sans-serif';
+  c.fillText('Manômetro', gx, gy - gr - 18);
+}
+
+/* --- arrastar o êmbolo --- */
+function overPiston(pt) {
+  const yb = pistonY(state.V), hy = handleYof(state.V);
+  const onHandle = pt.x > A.cx - 52 && pt.x < A.cx + 52 && pt.y > hy - 20 && pt.y < hy + 4;
+  const onRod = pt.x > A.cx - 10 && pt.x < A.cx + 10 && pt.y > hy && pt.y < yb;
+  const onPiston = pt.x > innerL && pt.x < innerR && pt.y > yb - A.pistonH - 4 && pt.y < yb + 4;
+  return onHandle || onRod || onPiston;
+}
+appCv.addEventListener('pointerdown', e => {
+  const pt = toLocal(appCv, A.W, A.H, e);
+  if (overPiston(pt)) {
+    stopAuto();
+    state.dragging = true;
+    state.dragOffset = pt.y - pistonY(state.V);
+    appCv.setPointerCapture(e.pointerId);
+    appCv.style.cursor = 'grabbing';
+    e.preventDefault();
+  }
+});
+appCv.addEventListener('pointermove', e => {
+  const pt = toLocal(appCv, A.W, A.H, e);
+  if (state.dragging) {
+    const V = (A.inBottom - (pt.y - state.dragOffset)) / A.pxPerL;
+    setVolume(V);
+  } else {
+    appCv.style.cursor = overPiston(pt) ? 'grab' : 'default';
+  }
+});
+const endDrag = () => { state.dragging = false; appCv.style.cursor = 'default'; };
+appCv.addEventListener('pointerup', endDrag);
+appCv.addEventListener('pointercancel', endDrag);
+
+/* ================== GRÁFICO ================== */
+const G = { W: 560, H: 400, x0: 64, x1: 540, y0: 22, y1: 340, Pmax: 9 };
+const grCv = document.getElementById('graph');
+const gctx = setupCanvas(grCv, G.W, G.H);
+const xMax = () => state.mode === 'PV' ? 11 : 1.1;
+const gx = v => G.x0 + v / xMax() * (G.x1 - G.x0);
+const gy = p => G.y1 - p / G.Pmax * (G.y1 - G.y0);
+const xVal = V => state.mode === 'PV' ? V : 1 / V;
+
+function drawGraph() {
+  const c = gctx;
+  c.clearRect(0, 0, G.W, G.H);
+  const xm = xMax(), P = pressure(state.V, state.T), tc = tempRGB(state.T);
+
+  // grade
+  c.strokeStyle = '#edf1f5'; c.lineWidth = 1;
+  c.fillStyle = '#5b6b7c'; c.font = '11px system-ui,sans-serif';
+  const xStep = state.mode === 'PV' ? 1 : 0.1;
+  c.textAlign = 'center'; c.textBaseline = 'top';
+  for (let i = 0; i * xStep <= xm + 1e-9; i++) {
+    const v = i * xStep, x = gx(v);
+    c.beginPath(); c.moveTo(x, G.y0); c.lineTo(x, G.y1); c.stroke();
+    if (state.mode === 'PV' || i % 2 === 0) c.fillText(state.mode === 'PV' ? String(v) : fmt(v, 1), x, G.y1 + 6);
+  }
+  c.textAlign = 'right'; c.textBaseline = 'middle';
+  for (let p = 0; p <= G.Pmax; p++) {
+    const y = gy(p);
+    c.beginPath(); c.moveTo(G.x0, y); c.lineTo(G.x1, y); c.stroke();
+    c.fillText(String(p), G.x0 - 8, y);
+  }
+  // eixos
+  c.strokeStyle = '#33475b'; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(G.x0, G.y0 - 6); c.lineTo(G.x0, G.y1); c.lineTo(G.x1 + 6, G.y1); c.stroke();
+  c.fillStyle = '#33475b'; c.font = '600 13px system-ui,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  c.fillText(state.mode === 'PV' ? 'Volume  V  (L)' : 'Inverso do volume  1/V  (L⁻¹)', (G.x0 + G.x1) / 2, G.H - 14);
+  c.save(); c.translate(18, (G.y0 + G.y1) / 2); c.rotate(-Math.PI / 2);
+  c.fillText('Pressão  P  (atm)', 0, 0); c.restore();
+
+  c.save();
+  c.beginPath(); c.rect(G.x0, G.y0 - 4, G.x1 - G.x0 + 4, G.y1 - G.y0 + 4); c.clip();
+
+  // área P·V
+  if (state.showArea && state.mode === 'PV') {
+    c.fillStyle = rgba(tc, .13);
+    c.fillRect(gx(0), gy(P), gx(state.V) - gx(0), gy(0) - gy(P));
+    c.strokeStyle = rgba(tc, .6); c.setLineDash([5, 4]); c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(gx(0), gy(P)); c.lineTo(gx(state.V), gy(P)); c.lineTo(gx(state.V), gy(0)); c.stroke();
+    c.setLineDash([]);
+    const w = gx(state.V) - gx(0), h = gy(0) - gy(P);
+    if (w > 70 && h > 34) {
+      c.fillStyle = rgba(mix(tc, [0, 0, 0], .25));
+      c.font = 'bold 12px system-ui,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('área = P·V', gx(state.V / 2), gy(P / 2) - 8);
+      c.fillText(fmt(P * state.V, 2) + ' atm·L', gx(state.V / 2), gy(P / 2) + 8);
+    }
+  } else if (state.mode !== 'PV') {
+    c.strokeStyle = rgba(tc, .6); c.setLineDash([5, 4]); c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(gx(0), gy(P)); c.lineTo(gx(1 / state.V), gy(P)); c.lineTo(gx(1 / state.V), gy(0)); c.stroke();
+    c.setLineDash([]);
+  }
+
+  // isotermas
+  const drawIso = (T, main) => {
+    const k = N_MOL * R * T, col = tempRGB(T);
+    c.strokeStyle = main ? rgba(col, 1) : rgba(col, .28);
+    c.lineWidth = main ? 3 : 1.5;
+    c.beginPath();
+    if (state.mode === 'PV') {
+      let first = true;
+      for (let V = 0.3; V <= 11.01; V += 0.05) {
+        const x = gx(V), y = gy(k / V);
+        if (first) { c.moveTo(x, y); first = false; } else c.lineTo(x, y);
+      }
+    } else {
+      c.moveTo(gx(0), gy(0)); c.lineTo(gx(1.1), gy(k * 1.1));
+    }
+    c.stroke();
+    return k;
+  };
+  if (state.showIso) for (let T = 200; T <= 500; T += 100) if (T !== state.T) drawIso(T, false);
+  // faixa acessível na simulação (1–10 L) em destaque
+  drawIso(state.T, true);
+
+  // pontos registrados
+  for (const pt of state.points) {
+    const x = gx(xVal(pt.V)), y = gy(pt.P);
+    c.fillStyle = rgba(tempRGB(pt.T)); c.strokeStyle = '#fff'; c.lineWidth = 2;
+    c.beginPath(); c.arc(x, y, 5.5, 0, Math.PI * 2); c.fill(); c.stroke();
+  }
+
+  // ponto atual
+  const cx = gx(xVal(state.V)), cy = gy(P);
+  c.fillStyle = rgba(tc, .22);
+  c.beginPath(); c.arc(cx, cy, 13 + Math.sin(state.time * 4) * 2, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#fff'; c.strokeStyle = rgba(tc); c.lineWidth = 3;
+  c.beginPath(); c.arc(cx, cy, 7, 0, Math.PI * 2); c.fill(); c.stroke();
+  c.restore();
+
+  // rótulo do ponto
+  c.font = '600 12px system-ui,sans-serif'; c.textBaseline = 'middle';
+  const label = `(${fmt(state.V, 1)} L ; ${fmt(P, 2)} atm)`;
+  const lw = c.measureText(label).width + 12;
+  let lx = cx + 14, ly = cy - 18;
+  if (lx + lw > G.x1) lx = cx - 14 - lw;
+  if (ly < G.y0 + 8) ly = cy + 20;
+  c.fillStyle = 'rgba(255,255,255,.9)'; rrect(c, lx, ly - 10, lw, 20, 6); c.fill();
+  c.strokeStyle = rgba(tc, .5); c.lineWidth = 1; c.stroke();
+  c.fillStyle = '#1d2b3a'; c.textAlign = 'left';
+  c.fillText(label, lx + 6, ly);
+
+  // legenda
+  const lg = `Isoterma  T = ${state.T} K`;
+  c.font = 'bold 12px system-ui,sans-serif';
+  const w = c.measureText(lg).width;
+  c.fillStyle = 'rgba(255,255,255,.92)'; rrect(c, G.x1 - w - 40, G.y0 + 2, w + 36, 24, 7); c.fill();
+  c.strokeStyle = '#d9e2ec'; c.stroke();
+  c.strokeStyle = rgba(tc); c.lineWidth = 3;
+  c.beginPath(); c.moveTo(G.x1 - w - 32, G.y0 + 14); c.lineTo(G.x1 - w - 14, G.y0 + 14); c.stroke();
+  c.fillStyle = '#1d2b3a'; c.textAlign = 'left';
+  c.fillText(lg, G.x1 - w - 9, G.y0 + 14);
+}
+
+// interação no gráfico
+function graphSet(e) {
+  const pt = toLocal(grCv, G.W, G.H, e);
+  const v = (pt.x - G.x0) / (G.x1 - G.x0) * xMax();
+  if (state.mode === 'PV') setVolume(v);
+  else if (v > 0) setVolume(1 / v);
+  else setVolume(VMAX);
+}
+let gDrag = false;
+grCv.addEventListener('pointerdown', e => { stopAuto(); gDrag = true; grCv.setPointerCapture(e.pointerId); graphSet(e); });
+grCv.addEventListener('pointermove', e => { if (gDrag) graphSet(e); });
+grCv.addEventListener('pointerup', () => gDrag = false);
+grCv.addEventListener('pointercancel', () => gDrag = false);
+grCv.style.cursor = 'crosshair';
+
+/* ================== CONTROLES ================== */
+const $ = id => document.getElementById(id);
+const vSlider = $('vSlider'), tSlider = $('tSlider');
+
+function setVolume(V) {
+  state.Vtarget = clamp(V, VMIN, VMAX);
+  vSlider.value = state.Vtarget.toFixed(1);
+}
+vSlider.addEventListener('input', () => { stopAuto(); state.Vtarget = +vSlider.value; });
+tSlider.addEventListener('input', () => { state.T = +tSlider.value; $('tLbl').textContent = state.T + ' K'; });
+
+$('gPV').addEventListener('click', () => { state.mode = 'PV'; $('gPV').classList.add('on'); $('gInv').classList.remove('on'); });
+$('gInv').addEventListener('click', () => { state.mode = 'INV'; $('gInv').classList.add('on'); $('gPV').classList.remove('on'); });
+$('cIso').addEventListener('change', e => state.showIso = e.target.checked);
+$('cArea').addEventListener('change', e => state.showArea = e.target.checked);
+
+$('bPause').addEventListener('click', () => {
+  state.running = !state.running;
+  $('bPause').textContent = state.running ? '⏸ Pausar moléculas' : '▶ Retomar moléculas';
+});
+
+$('bRec').addEventListener('click', () => recordPoint());
+$('bClear').addEventListener('click', () => { state.points = []; renderTable(); });
+
+function recordPoint() {
+  const V = Math.round(state.V * 10) / 10;
+  const P = pressure(V, state.T);
+  const dup = state.points.find(p => Math.abs(p.V - V) < 1e-6 && p.T === state.T);
+  if (dup) { flashRow(state.points.indexOf(dup)); return; }
+  state.points.push({ V, P, T: state.T });
+  renderTable();
+  flashRow(state.points.length - 1);
+}
+function renderTable() {
+  const tb = $('tbody');
+  tb.innerHTML = '';
+  state.points.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i + 1}</td><td>${fmt(p.V, 1)}</td><td>${fmt(p.P, 3)}</td>` +
+      `<td><span class="dot" style="background:${rgba(tempRGB(p.T))}"></span>${p.T}</td><td><b>${fmt(p.P * p.V, 3)}</b></td>`;
+    tb.appendChild(tr);
+  });
+  $('emptyMsg').style.display = state.points.length ? 'none' : 'block';
+  const temps = [...new Set(state.points.map(p => p.T))];
+  let note = 'Observe a última coluna: na mesma temperatura, o produto P·V não muda.';
+  if (state.points.length >= 2) {
+    const a = state.points[0], b = state.points[state.points.length - 1];
+    if (a.T === b.T) {
+      note = `Verificação: P₁V₁ = ${fmt(a.P, 3)} × ${fmt(a.V, 1)} = ${fmt(a.P * a.V, 3)}  e  P${state.points.length}V${state.points.length} = ${fmt(b.P, 3)} × ${fmt(b.V, 1)} = ${fmt(b.P * b.V, 3)} atm·L. São iguais!`;
+    } else if (temps.length > 1) {
+      note = 'Há medidas em temperaturas diferentes: o produto P·V é constante apenas dentro de cada isoterma (mesma cor). Quanto maior T, maior P·V.';
+    }
+  }
+  $('tblNote').textContent = note;
+}
+function flashRow(i) {
+  const tr = $('tbody').children[i];
+  if (!tr) return;
+  tr.style.transition = 'none'; tr.style.background = '#fff1c9';
+  requestAnimationFrame(() => { tr.style.transition = 'background 1s'; tr.style.background = ''; });
+  tr.scrollIntoView({ block: 'nearest' });
+}
+
+/* --- compressão automática: percorre a isoterma registrando pontos --- */
+function stopAuto() {
+  if (state.auto) { state.auto = null; $('bAuto').textContent = '▶ Compressão automática'; }
+}
+$('bAuto').addEventListener('click', () => {
+  if (state.auto) { stopAuto(); return; }
+  state.auto = { list: [10, 8, 6, 5, 4, 3, 2.5, 2, 1.5, 1], i: 0, wait: 0 };
+  setVolume(10);
+  $('bAuto').textContent = '⏹ Parar';
+});
+function updateAuto(dt) {
+  const a = state.auto;
+  if (!a) return;
+  if (Math.abs(state.V - state.Vtarget) < 0.01) {
+    a.wait += dt;
+    if (a.wait > 0.7) {
+      recordPoint();
+      a.i++; a.wait = 0;
+      if (a.i >= a.list.length) { stopAuto(); return; }
+      setVolume(a.list[a.i]);
+    }
+  }
+}
+
+/* ================== DESAFIO ================== */
+let quiz = null;
+function newQuiz() {
+  const V1 = Math.round((2 + Math.random() * 7) * 2) / 2;
+  let V2;
+  do { V2 = Math.round((1 + Math.random() * 9) * 2) / 2; } while (Math.abs(V2 - V1) < 1);
+  const T = [200, 250, 300, 350, 400, 450, 500][Math.floor(Math.random() * 7)];
+  const P1 = pressure(V1, T), P2 = P1 * V1 / V2;
+  quiz = { V1, V2, T, P1: Math.round(P1 * 100) / 100 };
+  quiz.P2 = quiz.P1 * V1 / V2;
+  $('qText').innerHTML = `Um gás ocupa <b>${fmt(V1, 1)} L</b> à pressão de <b>${fmt(quiz.P1, 2)} atm</b>. ` +
+    `Mantendo a temperatura constante em ${T} K, o volume ${V2 < V1 ? 'é reduzido' : 'é aumentado'} para <b>${fmt(V2, 1)} L</b>. Qual é a nova pressão (em atm)?`;
+  $('qAns').value = ''; $('qFb').textContent = ''; $('qFb').className = 'fb';
+}
+$('qNew').addEventListener('click', newQuiz);
+$('qCheck').addEventListener('click', () => {
+  const v = parseFloat(String($('qAns').value).replace(',', '.'));
+  const fb = $('qFb');
+  if (isNaN(v)) { fb.textContent = 'Digite um número.'; fb.className = 'fb bad'; return; }
+  const ok = Math.abs(v - quiz.P2) / quiz.P2 < 0.03;
+  fb.className = 'fb ' + (ok ? 'ok' : 'bad');
+  fb.textContent = (ok ? '✔ Correto! ' : '✘ Ainda não. ') +
+    `P₂ = P₁·V₁ / V₂ = ${fmt(quiz.P1, 2)} × ${fmt(quiz.V1, 1)} / ${fmt(quiz.V2, 1)} ≈ ${fmt(quiz.P2, 2)} atm`;
+});
+$('qAns').addEventListener('keydown', e => { if (e.key === 'Enter') $('qCheck').click(); });
+$('qSim').addEventListener('click', () => {
+  stopAuto();
+  state.T = quiz.T; tSlider.value = quiz.T; $('tLbl').textContent = quiz.T + ' K';
+  state.V = quiz.V1;
+  setVolume(quiz.V1);
+  setTimeout(() => { recordPoint(); setVolume(quiz.V2); setTimeout(recordPoint, 1500); }, 700);
+  $('app').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+/* ================== LAÇO PRINCIPAL ================== */
+function updateReadouts() {
+  const P = pressure(state.V, state.T);
+  $('roP').innerHTML = `${fmt(P, 2)} <small>atm</small>`;
+  $('roV').innerHTML = `${fmt(state.V, 1)} <small>L</small>`;
+  $('roT').innerHTML = `${state.T} <small>K</small>`;
+  $('roPV').innerHTML = `${fmt(P * state.V, 2)} <small>atm·L</small>`;
+  $('roHits').innerHTML = state.running ? `${Math.round(state.hitRate)}` : '–';
+  $('vLbl').textContent = fmt(state.Vtarget, 1) + ' L';
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  state.time += dt;
+
+  // êmbolo move-se suavemente (transformação lenta = isotérmica)
+  const dV = state.Vtarget - state.V;
+  const maxStep = 7 * dt;
+  state.V += clamp(dV * Math.min(1, dt * 7), -maxStep, maxStep);
+  if (Math.abs(state.Vtarget - state.V) < 0.002) state.V = state.Vtarget;
+
+  state.Tdisp += (state.T - state.Tdisp) * Math.min(1, dt * 4);
+  state.Pneedle += (pressure(state.V, state.T) - state.Pneedle) * Math.min(1, dt * 6);
+
+  if (state.running) updateParticles(dt);
+  flashes.forEach(f => f.t += dt);
+  flashes = flashes.filter(f => f.t < 0.35);
+  for (const b of bubbles) {
+    b.y -= b.v * (0.6 + state.Tdisp / 500) * dt;
+    if (b.y < A.water + 4) Object.assign(b, newBubble(false));
+  }
+  updateAuto(dt);
+
+  drawApparatus();
+  drawGraph();
+  updateReadouts();
+  requestAnimationFrame(frame);
+}
+
+initParticles();
+initBubbles();
+newQuiz();
+renderTable();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
